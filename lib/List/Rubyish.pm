@@ -24,7 +24,7 @@ use overload
     },
     fallback => 1;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Carp qw/croak/;
 use List::Util ();
@@ -58,11 +58,21 @@ sub pop {
 }
 
 sub first {
-    $_[0]->[0];
+    my ($self, $num) = @_;
+    if (defined $num) {
+        return $self->slice(0, $num - 1);
+    } else {
+        return $self->[0];
+    }
 }
 
 sub last {
-    $_[0]->[-1];
+    my ($self, $num) = @_;
+    if (defined $num) {
+        return $self->slice($self->_last_index - $num + 1, $self->_last_index);
+    } else {
+        return $self->[-1];
+    }
 }
 
 sub slice {
@@ -233,6 +243,24 @@ sub find {
     for (@$self) { &$code and return $_ }
     return;
 }
+
+*detect = \&find;
+
+sub select {
+    my ($self, $code) = @_;
+    croak "Argument must be a code" unless ref $code eq 'CODE';
+    return $self unless $self->size;
+    my $last_index = $self->_last_index;
+    my $new = $self->dup;
+    for (0..$last_index) {
+        my $item = $new->shift;
+        local $_ = $item;
+        $new->push($item) if $code->($_);
+    }
+    return $new;
+}
+
+*find_all = \&select;
 
 sub index_of {
     my ($self, $target) = @_;
@@ -511,6 +539,14 @@ blessed by List::Rubyish, as a result of C<$code>..
   $list = List::Rubyish->new([1, 2, 3, 4]);
   $list->find(sub { ($_ % 2) == 0 }); #=> 2
 
+=item select ( I<$code> )
+
+Returns the values found in C<$self>, a refernce to an array
+blessed by List::Rubyish, as a result of C<$code>..
+
+  $list = List::Rubyish->new([1, 2, 3, 4]);
+  $list->select(sub { ($_ % 2) == 0 }); #=> 2, 4
+
 =item index_of ( I<$arg> )
 
 Returns index of given target or given code returns true.
@@ -604,7 +640,7 @@ blessed by List::Rubyish.
 
 =head1 SEE ALSO
 
-L<DBIx::MoCo::List>, L<List::Util>, L<List::MoreUtils>, L<http://github.com/naoya/list-rubylike>, L<http://d.hatena.ne.jp/naoya/20080419/1208579525>
+L<DBIx::MoCo::List>, L<List::Util>, L<List::MoreUtils>, L<http://github.com/naoya/list-rubylike>, L<http://d.hatena.ne.jp/naoya/20080419/1208579525>, L<http://www.ruby-lang.org/ja/man/html/Enumerable.html>
 
 =head1 AUTHOR
 

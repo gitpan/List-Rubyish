@@ -14,7 +14,7 @@ sub list (@) {
     List::Rubyish->new(\@raw);
 }
 
-sub test_instance : Test(19) {
+sub test_instance : Tests(19) {
     ## class->new
     my $list = [qw/foo bar baz/];
     my $object = List::Rubyish->new($list);
@@ -56,7 +56,7 @@ sub test_instance : Test(19) {
     is_deeply $object->to_a, [{ foo => 1, bar => 2, baz => 3}];
 }
 
-sub test_instantiate : Test(8) {
+sub test_instantiate : Tests(8) {
     my $list = list([qw/foo bar baz/]);
     isa_ok $list, 'List::Rubyish';
     is @$list, 3;
@@ -74,7 +74,7 @@ sub test_instantiate : Test(8) {
     is_deeply $list->to_a, [ { foo => 'bar' } ];
 }
 
-sub test_push_and_pop : Test(7) {
+sub test_push_and_pop : Tests(7) {
     my $list = list(qw/foo bar baz/);
     $list->push('foo');
     is @$list, 4;
@@ -90,7 +90,7 @@ sub test_push_and_pop : Test(7) {
     isa_ok $list->push('baz'), 'List::Rubyish';
 }
 
-sub test_unshift_and_shift : Test(7) {
+sub test_unshift_and_shift : Tests(7) {
     my $list = list(qw/foo bar baz/);
     $list->unshift('hoge');
     is @$list, 4;
@@ -106,15 +106,39 @@ sub test_unshift_and_shift : Test(7) {
     isa_ok $list->unshift('baz'), 'List::Rubyish';
 }
 
-sub test_first_and_last : Test(3) {
+sub test_first_and_last : Tests(7) {
     my @elements = qw/foo bar baz/;
     my $list = list(@elements);
     is $list->first, 'foo';
+    is_deeply $list->first(2)->to_a, [qw/foo bar/];
+    is_deeply $list->first(3)->to_a, [qw/foo bar baz/];
+
     is $list->last, 'baz';
+    is_deeply $list->last(2)->to_a, [qw/bar baz/];
+    is_deeply $list->last(3)->to_a, [qw/foo bar baz/];
+
     is_deeply $list->to_a, [qw/foo bar baz/];
 }
 
-sub dump : Test(1) {
+sub test_select_and_find_all : Tests(4) {
+    for my $method (qw/select find_all/) {
+        my $list = list(qw/30 100 50 80 79 40 95/);
+        is_deeply( $list->$method( sub { $_ >= 80 } )->to_a, [100, 80, 95]);
+        is_deeply( $list->to_a, [qw/30 100 50 80 79 40 95/] );
+    }
+}
+
+sub test_select_size_error : Tests(2) {
+    no warnings 'redefine';
+    local *List::Rubyish::size = sub {};
+    my $list = list(qw/30 100 50 80 79 40 95/);
+    is_deeply( $list->select( sub { $_ >= 80 } )->to_a, [qw/30 100 50 80 79 40 95/]);
+
+    my $list2 = list();
+    is_deeply( $list2->select( sub { $_ >= 80 } )->to_a, []);
+}
+
+sub dump : Tests(1) {
     my $struct = [
         qw /foo bar baz/,
         [0, 1, 2, 3, 4],
@@ -123,14 +147,14 @@ sub dump : Test(1) {
     is_deeply($struct, eval list($struct)->dump);
 }
 
-sub join : Test(3) {
+sub join : Tests(3) {
     my $list = list(qw/foo bar baz/);
     is $list->join('/'), 'foo/bar/baz';
     is $list->join('.'), 'foo.bar.baz';
     is $list->join(''), 'foobarbaz';
 }
 
-sub each : Test(3) {
+sub each : Tests(3) {
     my $list =list(qw/foo bar baz/);
     my @resulsts;
     my $ret = $list->each(sub{ s!^ba!!; push @resulsts, $_  });
@@ -139,7 +163,7 @@ sub each : Test(3) {
     is_deeply $ret->to_a, [qw/foo bar baz/];
 }
 
-sub each_index : Test(2) {
+sub each_index : Tests(2) {
     my $list = list(qw/foo bar baz/);
     my @indexes;
     my $ret = $list->each_index(sub { push @indexes, $_ });
@@ -147,7 +171,7 @@ sub each_index : Test(2) {
     is_deeply \@indexes, [0, 1, 2];
 }
 
-sub test_concat_and_append : Test(10) {
+sub test_concat_and_append : Tests(10) {
     for my $method (qw/concat append/) {
         my $list = list(qw/foo bar baz/);
         $list->$method(['foo']);
@@ -164,7 +188,7 @@ sub test_concat_and_append : Test(10) {
     }
 }
 
-sub test_prepend : Test(5) {
+sub test_prepend : Tests(5) {
     my $list = list(qw/foo bar baz/);
     $list->prepend(['foo']);
     is @$list, 4;
@@ -175,14 +199,14 @@ sub test_prepend : Test(5) {
     isa_ok $list->prepend(['hoge']), 'List::Rubyish';
 }
 
-sub test_add : Test(3) {
+sub test_add : Tests(3) {
     my $list = list('foo');
     is_deeply($list + ['bar'], [qw/foo bar/]);
     is_deeply(['baz'] + $list, [qw/baz foo/]);
     is_deeply($list->to_a, ['foo']);
 }
 
-sub test_collect_and_map : Test(10) {
+sub test_collect_and_map : Tests(10) {
     for my $method (qw/collect map/) {
         my $list = list(qw/foo bar baz/);
 
@@ -197,7 +221,7 @@ sub test_collect_and_map : Test(10) {
     }
 }
 
-sub test_zip : Tests(4) {
+sub test_zip : Tests(7) {
     my $list = list([1,2,3]);
     is_deeply(
         $list->zip([1,2,3], [1,2,3])->to_a,
@@ -215,6 +239,15 @@ sub test_zip : Tests(4) {
         $list->zip(list([1,2,3]), [1,2,3,4])->to_a,
         [[1,1,1],[2,2,2],[3,3,3]]
     );
+    is_deeply(
+        $list->zip(list([1,2,3]), [1,2,3,4], [4,3,2,1])->to_a,
+        [[1,1,1,4],[2,2,2,3],[3,3,3,2]]
+    );
+    is_deeply(
+        $list->zip(list([1,2,3]), [1,2,3,4], [4,3,2,1], list([1,2,3]))->to_a,
+        [[1,1,1,4,1],[2,2,2,3,2],[3,3,3,2,3]]
+    );
+    is_deeply($list->to_a, [1,2,3]);
 }
 
 sub test_delete :  Tests(8) {
@@ -294,7 +327,7 @@ sub test_compact : Tests {
     is_deeply $list->to_a, [1, 2, undef, 4];
 }
 
-sub test_length_and_size : Test(4) {
+sub test_length_and_size : Tests(4) {
     for my $method (qw/length size/) {
         is list(1, 2, 3, 4)->size, 4;
         is list()->size, 0;
@@ -309,31 +342,31 @@ sub test_flatten : Tests(3) {
     is_deeply $list->to_a, [1, 2, 3, [4, 5, 6, [7, 8, 9, { 10 => '11' } ]]];
 }
 
-sub test_is_empty : Test(2) {
+sub test_is_empty : Tests(2) {
     ok list()->is_empty;
     ok not list(1, 2, 3)->is_empty;
 }
 
-sub test_uniq : Test(3) {
+sub test_uniq : Tests(3) {
     my $list = list(1, 2, 3, 3, 4);
     isa_ok $list->uniq, 'List::Rubyish';
     is_deeply $list->uniq, [1, 2, 3, 4];
     is_deeply $list->to_a, [1, 2, 3, 3, 4];
 }
 
-sub test_reduce : Test(1) {
+sub test_reduce : Tests(1) {
     my $list = list(1, 2, 10, 5, 9);
     is $list->reduce(sub { $_[0] > $_[1] ? $_[0] : $_[1] }), 10;
 }
 
-sub test_dup : Test(3) {
+sub test_dup : Tests(3) {
     my $list = list(1, 2, 3);
     isnt $list, $list->dup;
     isa_ok $list->dup, 'List::Rubyish';
     is_deeply $list->to_a, $list->dup->to_a;
 }
 
-sub test_slice : Test(12) {
+sub test_slice : Tests(12) {
     my $list = list(0, 1, 2);
 
     is_deeply $list->slice(0, 0)->to_a, [0];
@@ -353,26 +386,28 @@ sub test_slice : Test(12) {
     is_deeply $list->slice->to_a, [0, 1, 2];
 }
 
-sub test_find : Test(12) {
+sub test_find_and_detect : Tests(24) {
     my $list = list(1, 2, 3);
 
-    is $list->find(sub { $_ == 1 }), 1;
-    is $list->find(sub { $_ == 2 }), 2;
-    is $list->find(sub { $_ == 3 }), 3;
-    is $list->find(sub { $_ == 4 }), undef;
+    for my $method (qw/find detect/) {
+        is $list->$method(sub { $_ == 1 }), 1;
+        is $list->$method(sub { $_ == 2 }), 2;
+        is $list->$method(sub { $_ == 3 }), 3;
+        is $list->$method(sub { $_ == 4 }), undef;
 
-    is $list->find(1), 1;
-    is $list->find(2), 2;
-    is $list->find(3), 3;
-    is $list->find(4), undef;
+        is $list->$method(1), 1;
+        is $list->$method(2), 2;
+        is $list->$method(3), 3;
+        is $list->$method(4), undef;
 
-    is $list->find(+{ kyururi => 1 }), undef;
-    is $list->find(+{ kyururi => 2 }), undef;
-    is $list->find(+{ kyururi => 3 }), undef;
-    is $list->find(+{ kyururi => 4 }), undef;
+        is $list->$method(+{ kyururi => 1 }), undef;
+        is $list->$method(+{ kyururi => 2 }), undef;
+        is $list->$method(+{ kyururi => 3 }), undef;
+        is $list->$method(+{ kyururi => 4 }), undef;
+    }
 }
 
-sub test_index_of : Test(7) {
+sub test_index_of : Tests(7) {
     my $list = list(0, 1, 2, 3);
 
     is $list->index_of(0), 0;
@@ -385,39 +420,39 @@ sub test_index_of : Test(7) {
     is $list->index_of(sub { shift == 5 }), undef;
 }
 
-sub test_as_list : Test(1) {
+sub test_as_list : Tests(1) {
     my $list = list(0, 1, 2, 3);
     is $list->as_list, $list;
 }
 
-sub test_reverse : Test(1) {
+sub test_reverse : Tests(1) {
     my $list = list(0, 1, 2, 3);
     is_deeply [3, 2, 1, 0], $list->reverse->to_a;
 }
 
-sub test_sum : Test(2) {
+sub test_sum : Tests(2) {
     is list(0, 1, 2, 3)->sum, 0 + 1 + 2 + 3;
     is list(1, 1, 1, 1)->sum, 1 + 1 + 1 + 1;
 }
 
-sub test_some_method_argument_in_not_a_code : Test(5) {
+sub test_some_method_argument_in_not_a_code : Tests(6) {
     my $obj = List::Rubyish->new;
 
-    for my $method (qw/ delete_if inject each collect reduce /) {
+    for my $method (qw/ delete_if inject each collect reduce select /) {
         local $@;
         eval { $obj->$method( +{} ) };
         like $@, qr/Argument must be a code/, $method;
     }
 }
 
-sub test__last_index : Test(1) {
+sub test__last_index : Tests(1) {
     my $obj = List::Rubyish->new;
     no warnings 'redefine';
     local *List::Rubyish::length = sub {};
     is $obj->_last_index, 0;
 }
 
-sub test_grep_argment_error : Test(2) {
+sub test_grep_argment_error : Tests(2) {
     my $obj = List::Rubyish->new;
 
     ok !$obj->grep;

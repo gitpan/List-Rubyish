@@ -8,7 +8,7 @@ use List::Rubyish;
 
 __PACKAGE__->runtests;
 
-sub test_add : Test(9) {
+sub test_add : Tests(9) {
     my $obj    = List::Rubyish->new([qw/ 1 2 3 /]);
     my $obj2   = List::Rubyish->new(['4']);
     my $lopnor = List::Rubyish->new(['lopnor']);
@@ -40,7 +40,7 @@ sub test_add : Test(9) {
     is_deeply $lopnor->to_a, [qw/ lopnor /];
 }
 
-sub test_push : Test(5) {
+sub test_push : Tests(5) {
     my $obj    = List::Rubyish->new([qw/ 1 2 3 /]);
     my $obj2   = List::Rubyish->new(['4']);
     my $lopnor = List::Rubyish->new(['lopnor']);
@@ -63,7 +63,7 @@ sub test_push : Test(5) {
     is_deeply $obj->to_a, [qw/ 1 2 3 4 lopnor foo bar 99 /];
 }
 
-sub test_unshift : Test(5) {
+sub test_unshift : Tests(5) {
     my $obj    = List::Rubyish->new([qw/ 1 2 3 /]);
     my $obj2   = List::Rubyish->new(['4', '5']);
     my $lopnor = List::Rubyish->new(['lopnor']);
