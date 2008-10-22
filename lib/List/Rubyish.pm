@@ -24,7 +24,7 @@ use overload
     },
     fallback => 1;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Carp qw/croak/;
 use List::Util ();
@@ -141,9 +141,14 @@ sub delete_if {
     for (0..$last_index) {
         my $item = $self->shift;
         local $_ = $item;
-        $self->push($item) if $code->($_);
+        $self->push($item) unless $code->($_);
     }
     return $self;
+}
+
+sub reject {
+    my ($self, $code) = @_;
+    return $self->dup->delete_if($code);
 }
 
 sub inject {
@@ -275,6 +280,16 @@ sub index_of {
 sub sort {
     my ($self, $code) = @_;
     my @sorted = $code ? CORE::sort { $code->($a, $b) } @$self : CORE::sort @$self;
+    wantarray ? @sorted : $self->new(\@sorted);
+}
+
+sub sort_by {
+    my ($self, $code, $cmp) = @_;
+
+    my @sorted = $cmp ?
+        CORE::map { $_->[1] } CORE::sort { $cmp->($a->[0], $b->[0]) } CORE::map { [$code->($_), $_] } @$self :
+        CORE::map { $_->[1] } CORE::sort { $a->[0] <=> $b->[0] } CORE::map { [$code->($_), $_] } @$self;
+
     wantarray ? @sorted : $self->new(\@sorted);
 }
 
@@ -471,12 +486,12 @@ Deletes the element at C<$pos> and returns it.
 
 =item delete_if ( I<$code> )
 
-Deletes the elements if C<$code> returns false value with each element
+Deletes the elements if C<$code> returns true value with each element
 as an argument.
 
   $list = List::Rubyish->new([1, 2, 3, 4]);
   $list->delete_if(sub { ($_ % 2) == 0) });
-  $list->dump #=> [2, 4]
+  $list->dump #=> [1, 3]
 
 =item inject ( I<$result>, I<$code> )
 
@@ -563,6 +578,15 @@ List::Rubyish object along with the context.
   $list = List::Rubyish->new([qw(3 2 4 1]);
   $list->sort;                          #=> [1, 2, 3, 4]
   $list->sort(sub { $_[1] <=> $_[0] }); #=> [4, 3, 2, 1]
+
+=item sort_by ( I<$code>, I<$cmp> )
+
+Sorts out each element with Schwartzian transform returns the result as a list or
+List::Rubyish object along with the context.
+
+  $list = List::Rubyish->new([ [3], [2], [4], [1]]);
+  $list->sort_by(sub { $_->[0] }); #=> [[1], [2], [3], [4]]
+  $list->sort_by(sub { $_->[0] }, sub { $_[1} <=> $_[0] } ); #=> [[4], [3], [2], [1]]
 
 =item compact ()
 

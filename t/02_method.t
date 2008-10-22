@@ -285,8 +285,14 @@ sub test_delete_at : Tests(6) {
 
 sub test_delete_if: Tests(2) {
     my $list = list([1,2,3,4,5]);
-    is_deeply( $list->delete_if( sub { $_ < 3 ? 1 : 0 } )->to_a, [1,2]);
-    is_deeply( $list->to_a, [1,2] );
+    is_deeply( $list->delete_if( sub { $_ < 3 } )->to_a, [3,4,5]);
+    is_deeply( $list->to_a, [3,4,5] );
+}
+
+sub test_reject: Tests {
+    my $list = list([1,2,3,4,5]);
+    is_deeply( $list->reject( sub { $_ < 3 } )->to_a, [3,4,5]);
+    is_deeply( $list->to_a, [1,2,3,4,5] );
 }
 
 sub test_inject: Tests(3) {
@@ -314,6 +320,15 @@ sub test_sort : Tests(5) {
 
     my @ret = $list->sort(sub { $_[1] <=> $_[0] });
     is_deeply \@ret, [3, 2, 1];
+}
+
+sub test_sort_by : Tests(4) {
+    my $list = list([ [3], [1], [2] ]);
+    isa_ok $list->sort_by(sub { $_->[0] }), 'List::Rubyish';
+    is_deeply $list->sort_by(sub { $_->[0] })->to_a, [[1], [2], [3]];
+    is_deeply $list->sort_by(sub { $_->[0] }, sub { $_[1] <=> $_[0] })->to_a, [[3], [2], [1]];
+    my @ret = $list->sort_by(sub { $_->[0] });
+    is_deeply \@ret, [[1], [2], [3]];
 }
 
 sub test_compact : Tests {
